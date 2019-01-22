@@ -62,8 +62,7 @@ public class SafetyNet extends AndroidMobileAtWorkBaseClass {
         Assert.assertTrue(vspHelperUtility.getDeviceDetailsFromDB("safety_net_status", device).equals("Compatible"));
         System.out.println("Test");
         System.out.println("Added by Sridhara Test");
-	
-        				
+	System.out.println("Added by Subramani");
 	}
 	
 	@AfterMethod(alwaysRun = true)
