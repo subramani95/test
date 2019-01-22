@@ -1,0 +1,74 @@
+package com.mobileiron.android.mobileatwork.policy.security;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.testng.Assert;
+import org.testng.ITestContext;
+import org.testng.ITestResult;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
+import com.mobileiron.android.common.AndroidResources;
+import com.mobileiron.automation.common.framework.testrail.TestRail;
+import com.mobileiron.automation.utils.AndroidMobileAtWorkBaseClass;
+import com.mobileiron.automation.utils.CommonUtils;
+import com.mobileiron.common.AdbFactory;
+import com.mobileiron.common.TestFeatures;
+import com.mobileiron.qa.regression.vsp.data.Label;
+import com.mobileiron.qa.regression.vsp.data.User;
+import com.mobileiron.qa.regression.vsp.data.policy.Security;
+import com.mobileiron.qa.regression.vsp.data.policy.SecurityPassword;
+import com.mobileiron.qa.regression.vsp.data.policy.SecurityPassword.GracePeriod;
+import com.mobileiron.qa.regression.vsp.data.policy.SecurityPassword.MaximumFailedAttempt;
+import com.mobileiron.qa.regression.vsp.data.policy.SecurityPassword.MaximumInactivityTimeout;
+import com.mobileiron.qa.regression.vsp.data.policy.SecurityPassword.PasswordOption;
+import com.mobileiron.qa.regression.vsp.data.policy.SecurityPassword.PasswordType;
+import com.mobileiron.qa.regression.vsp.devicedata.Device;
+import com.mobileiron.qa.regression.vsp.devicedata.DeviceSpace;
+import com.mobileiron.qa.regression.vsp.util.RandomGenerators;
+
+public class SafetyNet extends AndroidMobileAtWorkBaseClass {
+	private static final Logger LOG = LoggerFactory.getLogger(SafetyNet.class);
+	User user = new User();
+	Device device = new Device();
+	private Security security;
+
+	@BeforeMethod(alwaysRun = true)
+	public void setUp() throws Exception {
+		LOG.info("CREATE A RANDOM USER IN VSP");
+		user = coreapiHelperFactory.getUserApiHelper().createLocalUserAndAssignAllRoles(RandomGenerators.generateRandomFirstName());
+		device.setUser(user);
+		LOG.info("ENABLE 'Require Google SafetyNet Attestation' IN SECURITY POLICY");
+		security = new Security().createDefaultSecurityPolicyObject("SAFETYNET_SECURITY");
+		security.setEnableSafetyNet(true);
+		SecurityPassword securityPassword = new SecurityPassword();
+        securityPassword.setPasswordOption(PasswordOption.Optional);
+        securityPassword.setPasswordType(PasswordType.Dont_Care);
+        security.setSecurityPassword(securityPassword);
+		
+		this.coreapiHelperFactory.getPolicyApiHelper().createPolicy(security);
+		this.coreapiHelperFactory.getPolicyApiHelper().applyPolicyToLabel(security, Label.DefaultLabels.Android.getLabel());
+
+	}
+
+	@TestRail(caseId = 23846188)
+	@Test(groups = { TestFeatures.Priority.P1, TestFeatures.MDM, TestFeatures.POLICY ,TestFeatures.SECURITY_POLICY }, description = "To verify SafetyNet status is Compatible")
+	public void C23846188_verifySafetyNetStatus() throws Exception {
+		LOG.info("REGISTER DEVICE");
+        androidDeviceHelperUtility.registerDeviceWithDefaultUser(vspHelperUtility.getRegistrationURL(), user.getUserName(), user.getPassword());
+
+        LOG.info("CHECK SAFETYNET STATUS = COMPATIBLE");
+        Assert.assertTrue(vspHelperUtility.getDeviceDetailsFromDB("safety_net_status", device).equals("Compatible"));
+        System.out.println("Test");
+        				
+	}
+	
+	@AfterMethod(alwaysRun = true)
+	public void testMethodTearDown(ITestResult result) throws Exception {
+	}
+	
+	@AfterClass(alwaysRun = true)
+	public void SafetyNetClassTearDown() throws Exception {
+	}
+}
